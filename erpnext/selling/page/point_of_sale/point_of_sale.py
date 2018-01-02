@@ -151,3 +151,8 @@ def get_extrafields():
 		}
 		req_fields.append(fdict)
 	return req_fields
+
+def fetch_pos_profile_detail(pos_profile):
+	doc_detail=frappe.get_doc("POS Profile",pos_profile)
+	print_check=doc_detail.allow_print_before_pay
+	return print_check
