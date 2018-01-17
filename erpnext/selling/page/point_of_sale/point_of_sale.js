@@ -337,9 +337,9 @@ erpnext.pos.PointOfSale = class PointOfSale {
 	}
 
 	submit_sales_invoice() {
-		var islocal_dummy = 1;
+		var is_saved = 0;
 		if(!this.frm.doc.__islocal){
-			islocal_dummy = 0; 
+			is_saved = 1; 
 		}
 		frappe.confirm(__("Permanently Submit {0}?", [this.frm.doc.name]), () => {
 			frappe.call({
@@ -347,7 +347,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 				freeze: true,
 				args: {
 					doc: this.frm.doc,
-					islocal_dummy: islocal_dummy
+					is_saved: is_saved
 				}
 			}).then(r => {
 				if(r.message) {
@@ -572,7 +572,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		if(this.frm.doc.items.length == 0){
 			this.page.clear_secondary_action();
 		}
-		
+
 		if (this.frm.doc.docstatus == 1) {
 			this.page.set_primary_action(__("New"), () => {
 				this.make_new_invoice();
