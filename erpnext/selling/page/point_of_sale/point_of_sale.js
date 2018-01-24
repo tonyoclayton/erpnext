@@ -339,7 +339,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 	submit_sales_invoice() {
 		var is_saved = 0;
 		if(!this.frm.doc.__islocal){
-			is_saved = 1; 
+			is_saved = 1;
 		}
 		frappe.confirm(__("Permanently Submit {0}?", [this.frm.doc.name]), () => {
 			frappe.call({
@@ -564,7 +564,10 @@ erpnext.pos.PointOfSale = class PointOfSale {
 
 	set_form_action() {
 		if(this.frm.doc.docstatus == 1 || (this.frm.doc.allow_print_before_pay == 1&&this.frm.doc.items.length>0)){
-			this.page.set_secondary_action(__("Print"), () => {
+			this.page.set_secondary_action(__("Print"), async() => {
+				if(this.frm.doc.docstatus != 1 ){
+					await this.frm.save();
+				}
 				this.frm.print_preview.printit(true);
 			});
 		}
