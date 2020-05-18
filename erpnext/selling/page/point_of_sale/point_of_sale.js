@@ -1,3 +1,5 @@
+// point_of_sale.js
+
 /* global Clusterize */
 frappe.provide('erpnext.pos');
 
@@ -26,7 +28,9 @@ frappe.pages['point-of-sale'].refresh = function(wrapper) {
 	}
 }
 
-erpnext.pos.PointOfSale = class PointOfSale {
+erpnext.pos.PointOfSale = 
+
+class PointOfSale {
 	constructor(wrapper) {
 		this.wrapper = $(wrapper).find('.layout-main-section');
 		this.page = wrapper.page;
@@ -341,7 +345,8 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		if(!this.frm.doc.__islocal){
 			is_saved = 1;
 		}
-		frappe.confirm(__("Permanently Submit {0}?", [this.frm.doc.name]), () => {
+		// Will always say "New Sales Invoice 1", because the invoice hasn't been posted yet.
+		frappe.confirm(__("Permanently submit invoice {0}?", [this.frm.doc.name]), () => {
 			frappe.call({
 				method: 'erpnext.selling.page.point_of_sale.point_of_sale.submit_invoice',
 				freeze: true,
@@ -351,32 +356,64 @@ erpnext.pos.PointOfSale = class PointOfSale {
 				}
 			}).then(r => {
 				if(r.message) {
-					this.frm.doc = r.message;
+					this.frm.doc = r.message;  // Change the Form's doctype to the new Invoice.
 					frappe.show_alert({
 						indicator: 'green',
-						message: __(`Sales invoice ${r.message.name} created succesfully`)
+						message: __(`Sales invoice ${r.message.name} created successfully`)
 					});
 
 					this.toggle_editing();
 					this.set_form_action();
-					this.set_primary_action_in_modal();
+					this.set_primary_action_in_modal(this.frm.doc);  // Modal with Email, Print, New
 				}
 			});
 		});
 	}
 
-	set_primary_action_in_modal() {
+	set_primary_action_in_modal(docInvoice) {
+		// https://en.wikipedia.org/wiki/Modal_window
+		// JMIBarcodes:  Modified by Brian Pond on 17 May 2020.
 		this.frm.msgbox = frappe.msgprint(
-			`<a class="btn btn-primary" onclick="cur_frm.print_preview.printit(true)" style="margin-right: 5px;">
+			`
+			<p>Created invoice ${docInvoice.name}</p>
+			<a class="btn btn-primary" onclick="cur_frm.print_preview.printit(true)" style="margin-right: 5px;">
 				${__('Print')}</a>
+			<a class="btn btn-default btn-email" style="margin-right: 5px;">
+				${__('Email')}</a>				
 			<a class="btn btn-default">
-				${__('New')}</a>`
+				${__('New')}</a>
+			`
 		);
 
+		// Find DOM element for 'New', add 'on click' function.
 		$(this.frm.msgbox.body).find('.btn-default').on('click', () => {
 			this.frm.msgbox.hide();
 			this.make_new_invoice();
 		})
+
+		// Find DOM element for 'Email', add 'on click' function.
+		$(this.frm.msgbox.body).find('.btn-email').on('click', () => {
+			this.frm.msgbox.hide();
+			this.open_emailForm_invoice(docInvoice);
+		})
+	}
+
+	open_emailForm_invoice(docInvoice) {
+		console.log('Opening JMI custom email form.');
+
+		let invoice_message = `Dear Valued Customer<br><br>
+
+		Please find the attached invoice for your purchase.`;
+
+		return new frappe.views.CommunicationComposer({
+			doc: docInvoice,
+			frm: this.frm,
+			subject: 'Sales Invoice: ' + __(docInvoice.name),
+			recipients: docInvoice.contact_email,
+			attach_document_print: true,
+			message: "",  // none for now, because strangely hard-coded in the CommunicationComposer class.
+			real_name: docInvoice.contact_display || docInvoice.customer_name
+		});
 	}
 
 	change_pos_profile() {
@@ -539,11 +576,6 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		var me = this;
 		this.page.clear_menu();
 
-		// for mobile
-		// this.page.add_menu_item(__("Pay"), function () {
-		//
-		// }).addClass('visible-xs');
-
 		this.page.add_menu_item(__("Form View"), function () {
 			frappe.model.sync(me.frm.doc);
 			frappe.set_route("Form", me.frm.doc.doctype, me.frm.doc.name);
@@ -580,6 +612,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 			this.page.set_primary_action(__("New"), () => {
 				this.make_new_invoice();
 			});
+
 			this.page.add_menu_item(__("Email"), () => {
 				this.frm.email_doc();
 			});
