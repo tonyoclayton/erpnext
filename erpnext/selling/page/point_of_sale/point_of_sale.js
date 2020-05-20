@@ -1,7 +1,8 @@
 // point_of_sale.js
 
+// The code for 'provide' is located here ../frappe/public/js/frappe.provide.js
 /* global Clusterize */
-frappe.provide('erpnext.pos');
+frappe.provide('erpnext.pos');  // Adds 'erpnext.pos' to the window namespace.
 
 frappe.pages['point-of-sale'].on_page_load = function(wrapper) {
 	frappe.ui.make_app_page({
@@ -26,9 +27,9 @@ frappe.pages['point-of-sale'].refresh = function(wrapper) {
 	if (wrapper.pos) {
 		cur_frm = wrapper.pos.frm;
 	}
-}
+};
 
-erpnext.pos.PointOfSale = 
+erpnext.pos.PointOfSale =
 
 class PointOfSale {
 	constructor(wrapper) {
@@ -36,9 +37,11 @@ class PointOfSale {
 		this.page = wrapper.page;
 		this.additional_si_fields = [];
 
+		// Brian: Add custom JMI email class.
 		const assets = [
 			'assets/erpnext/js/pos/clusterize.js',
-			'assets/erpnext/css/pos.css'
+			'assets/erpnext/css/pos.css',
+			'assets/jmi_erpnext/js/jmi_email.js'
 		];
 
 		frappe.require(assets, () => {
@@ -323,7 +326,7 @@ class PointOfSale {
 					if (field === 'qty' && item.qty === 0) {
 						frappe.model.clear_doc(item.doctype, item.name);
 					}
-				})
+				});
 		}
 
 		return Promise.resolve();
@@ -389,23 +392,24 @@ class PointOfSale {
 		$(this.frm.msgbox.body).find('.btn-default').on('click', () => {
 			this.frm.msgbox.hide();
 			this.make_new_invoice();
-		})
+		});
 
 		// Find DOM element for 'Email', add 'on click' function.
 		$(this.frm.msgbox.body).find('.btn-email').on('click', () => {
 			this.frm.msgbox.hide();
 			this.open_emailForm_invoice(docInvoice);
-		})
+			this.frm.msgbox.show();
+		});
 	}
 
 	open_emailForm_invoice(docInvoice) {
-		console.log('Opening JMI custom email form.');
-
+		/*
 		let invoice_message = `Dear Valued Customer<br><br>
 
 		Please find the attached invoice for your purchase.`;
-
-		return new frappe.views.CommunicationComposer({
+		*/
+		// return new frappe.views.CommunicationComposer({
+		return new jmi_erpnext.email.CommunicationComposer({
 			doc: docInvoice,
 			frm: this.frm,
 			subject: 'Sales Invoice: ' + __(docInvoice.name),
@@ -436,7 +440,7 @@ class PointOfSale {
 				} else {
 					this.on_change_pos_profile();
 				}
-			}
+			};
 
 			frappe.prompt(this.get_promopt_fields(),
 				on_submit,
@@ -487,13 +491,13 @@ class PointOfSale {
 			if(!this.company) {
 				frappe.prompt({fieldname:"company", options: "Company", fieldtype:"Link",
 					label: __("Select Company"), reqd: 1}, (data) => {
-						this.company = data.company;
-						resolve(this.company);
+					this.company = data.company;
+					resolve(this.company);
 				}, __("Select Company"));
 			} else {
 				resolve(this.company);
 			}
-		})
+		});
 	}
 
 	make_new_invoice() {
@@ -597,7 +601,7 @@ class PointOfSale {
 	set_form_action() {
 		if(this.frm.doc.docstatus == 1 || (this.frm.doc.allow_print_before_pay == 1&&this.frm.doc.items.length>0)){
 			this.page.set_secondary_action(__("Print"), async() => {
-				if(this.frm.doc.docstatus != 1 ){
+				if(this.frm.doc.docstatus != 1 ) {
 					await this.frm.save();
 				}
 				this.frm.print_preview.printit(true);
@@ -805,7 +809,7 @@ class POSCart {
 				get_query: function() {
 					return {
 						query: 'erpnext.controllers.queries.customer_query'
-					}
+					};
 				},
 				onchange: () => {
 					this.events.on_customer_change(this.customer_field.get_value());
@@ -1289,9 +1293,9 @@ class POSItems {
 			if (data.item_code === item_code) {
 				item = data;
 			}
-		})
+		});
 
-		return item
+		return item;
 	}
 
 	get_all() {
@@ -1503,7 +1507,7 @@ class Payment {
 	set_title() {
 		let title = __('Total Amount {0}',
 			[format_currency(this.frm.doc.rounded_total || this.frm.doc.grand_total,
-			this.frm.doc.currency)]);
+				this.frm.doc.currency)]);
 
 		this.dialog.set_title(title);
 	}
@@ -1521,7 +1525,7 @@ class Payment {
 							me.frm.doc.outstanding_amount / me.frm.doc.conversion_rate);
 						return;
 					}
-				})
+				});
 			}
 		});
 	}
